@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Attack - Columnar Transposition Cipher{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>⚔️ Attack & Crack Cipher</h1>
+    <p>Crack encrypted messages without knowing the key</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Attack Configuration</h2>
+    </div>
+    <div class="card-body">
+        <form id="attack-form">
+            <div class="form-group">
+                <label for="ciphertext">Ciphertext to Attack:</label>
+                <textarea id="ciphertext" name="ciphertext" rows="5" 
+                          placeholder="Enter the encrypted message to crack..." required></textarea>
+                <small>The ciphertext you want to crack (works with or without spaces)</small>
+            </div>
+
+            <div class="form-group">
+                <label for="attack_type">Attack Type:</label>
+                <select id="attack_type" name="attack_type">
+                    <option value="smart">Smart Attack (Recommended)</option>
+                    <option value="brute_force">Brute Force Only</option>
+                </select>
+                <small>Smart attack combines brute-force and heuristics for better results</small>
+            </div>
+
+            <div class="form-group">
+                <label for="max_key_length">Maximum Key Length:</label>
+                <input type="number" id="max_key_length" name="max_key_length" 
+                       value="7" min="1" max="12">
+                <small>Higher values take longer but may find longer keys</small>
+            </div>
+
+            <button type="submit" class="btn btn-danger btn-large">
+                ⚔️ Launch Attack
+            </button>
+        </form>
+    </div>
+</div>
+
+<div id="progress-section" class="card" style="display: none;">
+    <div class="card-header">
+        <h2>Attack Progress</h2>
+    </div>
+    <div class="card-body">
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="attack-progress"></div>
+        </div>
+        <p id="progress-text">Processing...</p>
+    </div>
+</div>
+
+<div id="results-section" class="card" style="display: none;">
+    <div class="card-header">
+        <h2>Attack Results</h2>
+        <span id="results-count" class="badge"></span>
+    </div>
+    <div class="card-body">
+        <div id="results-container"></div>
+    </div>
+</div>
+
+<div class="card info-card">
+    <div class="card-header">
+        <h3>💡 Attack Information</h3>
+    </div>
+    <div class="card-body">
+        <h4>How It Works:</h4>
+        <ul>
+            <li><strong>Brute Force:</strong> Tries all possible key permutations for key lengths 1-7</li>
+            <li><strong>Heuristic Methods:</strong> For longer keys (8+), uses hill-climbing and genetic algorithms</li>
+            <li><strong>Scoring:</strong> Each candidate is scored using frequency analysis, n-grams, and dictionary matching</li>
+            <li><strong>No-Space Text:</strong> Dictionary word detection helps identify correct plaintext even without spaces</li>
+        </ul>
+        
+        <h4>Performance Notes:</h4>
+        <ul>
+            <li>Key length 1-5: Very fast (milliseconds to seconds)</li>
+            <li>Key length 6-7: Fast (seconds to minutes)</li>
+            <li>Key length 8+: Uses heuristics (may take several seconds)</li>
+        </ul>
+        
+        <h4>Tips for Success:</h4>
+        <ul>
+            <li>Longer ciphertexts are easier to crack (more data to analyze)</li>
+            <li>The correct plaintext usually has the highest score</li>
+            <li>Look for recognizable words and patterns in top results</li>
+            <li>If attack doesn't find the key, try increasing max key length</li>
+        </ul>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('attack-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const ciphertext = document.getElementById('ciphertext').value;
+    const attackType = document.getElementById('attack_type').value;
+    const maxKeyLength = document.getElementById('max_key_length').value;
+    
+    // Show progress
+    document.getElementById('progress-section').style.display = 'block';
+    document.getElementById('attack-progress').style.width = '0%';
+    document.getElementById('progress-text').textContent = 'Starting attack...';
+    document.getElementById('results-section').style.display = 'none';
+    
+    showLoading();
+    
+    // Simulate progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += 5;
+        if (progress <= 90) {
+            document.getElementById('attack-progress').style.width = progress + '%';
+            document.getElementById('progress-text').textContent = `Processing... ${progress}%`;
+        }
+    }, 200);
+    
+    try {
+        const response = await fetch('/api/attack', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ciphertext: ciphertext,
+                attack_type: attackType,
+                max_key_length: maxKeyLength
+            })
+        });
+        
+        const data = await response.json();
+        
+        clearInterval(progressInterval);
+        document.getElementById('attack-progress').style.width = '100%';
+        document.getElementById('progress-text').textContent = 'Attack complete!';
+        
+        if (data.success) {
+            // Display results
+            displayResults(data.results);
+            document.getElementById('results-section').style.display = 'block';
+            document.getElementById('results-count').textContent = `${data.total_found} candidates found`;
+            
+            showToast(`Attack complete! Found ${data.total_found} candidates.`, 'success');
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    } catch (error) {
+        clearInterval(progressInterval);
+        showToast('Error: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+});
+
+function displayResults(results) {
+    const container = document.getElementById('results-container');
+    
+    if (results.length === 0) {
+        container.innerHTML = '<p class="no-results">No candidates found. Try adjusting parameters.</p>';
+        return;
+    }
+    
+    let html = '<div class="results-list">';
+    
+    results.forEach((result, index) => {
+        const rank = index + 1;
+        const scoreClass = result.score > 60 ? 'high-score' : result.score > 40 ? 'medium-score' : 'low-score';
+        
+        html += `
+            <div class="result-item">
+                <div class="result-header">
+                    <span class="result-rank">#${rank}</span>
+                    <span class="result-key">Key: ${result.key}</span>
+                    <span class="result-score ${scoreClass}">Score: ${result.score.toFixed(2)}</span>
+                </div>
+                <div class="result-plaintext">
+                    <strong>Plaintext:</strong>
+                    <pre>${result.plaintext}</pre>
+                </div>
+                <div class="result-actions">
+                    <button class="btn btn-small btn-secondary" onclick="copyText('${result.plaintext.replace(/'/g, "\\'")}')">
+                        📋 Copy
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!', 'success');
+    });
+}
+</script>
+{% endblock %}

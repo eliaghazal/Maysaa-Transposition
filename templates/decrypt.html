@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Decrypt - Columnar Transposition Cipher{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🔓 Decrypt Message</h1>
+    <p>Convert ciphertext back to plaintext using your key</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Decryption Form</h2>
+    </div>
+    <div class="card-body">
+        <form id="decrypt-form">
+            <div class="form-group">
+                <label for="ciphertext">Ciphertext:</label>
+                <textarea id="ciphertext" name="ciphertext" rows="5" 
+                          placeholder="Enter the encrypted message..." required></textarea>
+                <small>The encrypted message you want to decrypt</small>
+            </div>
+
+            <div class="form-group">
+                <label for="key">Decryption Key:</label>
+                <input type="text" id="key" name="key" 
+                       placeholder="e.g., 3142 or SECRET" required>
+                <small>Use the same key that was used for encryption</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-large">
+                🔓 Decrypt Message
+            </button>
+        </form>
+    </div>
+</div>
+
+<div id="result-section" class="card" style="display: none;">
+    <div class="card-header">
+        <h2>Decryption Result</h2>
+    </div>
+    <div class="card-body">
+        <div class="result-output">
+            <h3>Plaintext:</h3>
+            <div class="output-box" id="plaintext-output"></div>
+            <button class="btn btn-secondary" onclick="copyToClipboard('plaintext-output')">
+                📋 Copy to Clipboard
+            </button>
+        </div>
+        
+        <div class="score-display">
+            <h3>Quality Scores:</h3>
+            <div class="score-grid">
+                <div class="score-item">
+                    <div class="score-label">Text Score:</div>
+                    <div class="score-value" id="text-score"></div>
+                </div>
+                <div class="score-item">
+                    <div class="score-label">Dictionary Score:</div>
+                    <div class="score-value" id="dict-score"></div>
+                </div>
+            </div>
+            <p class="score-note">Higher scores indicate more English-like text</p>
+        </div>
+    </div>
+</div>
+
+<div class="card info-card">
+    <div class="card-header">
+        <h3>💡 Tips</h3>
+    </div>
+    <div class="card-body">
+        <ul>
+            <li><strong>Correct key:</strong> You must use the exact same key that was used for encryption</li>
+            <li><strong>Padding removal:</strong> Trailing 'X' characters (used as padding) are automatically removed</li>
+            <li><strong>Score interpretation:</strong> Text score above 60 and dictionary score above 0.5 usually indicate correct decryption</li>
+            <li><strong>Don't have the key?</strong> Try the <a href="/attack">Attack</a> page to crack the cipher</li>
+        </ul>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('decrypt-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const ciphertext = document.getElementById('ciphertext').value;
+    const key = document.getElementById('key').value;
+    
+    showLoading();
+    
+    try {
+        const response = await fetch('/api/decrypt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ciphertext: ciphertext,
+                key: key
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Display result
+            document.getElementById('plaintext-output').textContent = data.plaintext;
+            document.getElementById('text-score').textContent = data.score.toFixed(2);
+            document.getElementById('dict-score').textContent = data.dictionary_score.toFixed(2);
+            document.getElementById('result-section').style.display = 'block';
+            
+            // Determine quality
+            let quality = 'unknown';
+            if (data.score > 60 && data.dictionary_score > 0.5) {
+                quality = 'good';
+                showToast('Decryption successful! High-quality plaintext detected.', 'success');
+            } else if (data.score > 40 || data.dictionary_score > 0.3) {
+                quality = 'medium';
+                showToast('Decryption complete. Medium-quality plaintext.', 'info');
+            } else {
+                quality = 'poor';
+                showToast('Decryption complete. Low-quality plaintext - key might be incorrect.', 'warning');
+            }
+            
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Error: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+});
+</script>
+{% endblock %}

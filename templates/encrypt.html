@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Encrypt - Columnar Transposition Cipher{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🔒 Encrypt Message</h1>
+    <p>Convert your plaintext into ciphertext using columnar transposition</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Encryption Form</h2>
+    </div>
+    <div class="card-body">
+        <form id="encrypt-form">
+            <div class="form-group">
+                <label for="plaintext">Plaintext:</label>
+                <textarea id="plaintext" name="plaintext" rows="5" 
+                          placeholder="Enter your message here..." required></textarea>
+                <small>Your message to encrypt (can include spaces)</small>
+            </div>
+
+            <div class="form-group">
+                <label for="key">Encryption Key:</label>
+                <input type="text" id="key" name="key" 
+                       placeholder="e.g., 3142 or SECRET" required>
+                <small>Use numeric key (e.g., "3142") or keyword (e.g., "SECRET")</small>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="keep_spaces" name="keep_spaces">
+                    <span>Keep spaces in ciphertext</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-large">
+                🔒 Encrypt Message
+            </button>
+        </form>
+    </div>
+</div>
+
+<div id="result-section" class="card" style="display: none;">
+    <div class="card-header">
+        <h2>Encryption Result</h2>
+    </div>
+    <div class="card-body">
+        <div class="result-output">
+            <h3>Ciphertext:</h3>
+            <div class="output-box" id="ciphertext-output"></div>
+            <button class="btn btn-secondary" onclick="copyToClipboard('ciphertext-output')">
+                📋 Copy to Clipboard
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="visualization-section" class="card" style="display: none;">
+    <div class="card-header">
+        <h2>📊 Visualization</h2>
+    </div>
+    <div class="card-body">
+        <div id="matrix-display"></div>
+        <div id="column-order-display"></div>
+    </div>
+</div>
+
+<div class="card info-card">
+    <div class="card-header">
+        <h3>💡 Tips</h3>
+    </div>
+    <div class="card-body">
+        <ul>
+            <li><strong>Numeric keys:</strong> Must be a permutation of consecutive numbers (e.g., "3142" for 4 columns)</li>
+            <li><strong>Keyword keys:</strong> Will be converted to numeric based on alphabetical order (e.g., "SECRET" → "351624")</li>
+            <li><strong>Padding:</strong> If your message doesn't fill the grid completely, 'X' characters are added as padding</li>
+            <li><strong>Spaces:</strong> By default, spaces are removed. Check "Keep spaces" to preserve them</li>
+        </ul>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('encrypt-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const plaintext = document.getElementById('plaintext').value;
+    const key = document.getElementById('key').value;
+    const keepSpaces = document.getElementById('keep_spaces').checked;
+    
+    showLoading();
+    
+    try {
+        const response = await fetch('/api/encrypt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                plaintext: plaintext,
+                key: key,
+                keep_spaces: keepSpaces
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Display result
+            document.getElementById('ciphertext-output').textContent = data.ciphertext;
+            document.getElementById('result-section').style.display = 'block';
+            
+            // Display visualization
+            displayVisualization(data.visualization);
+            document.getElementById('visualization-section').style.display = 'block';
+            
+            showToast('Message encrypted successfully!', 'success');
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Error: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+});
+
+function displayVisualization(viz) {
+    const matrixDisplay = document.getElementById('matrix-display');
+    const columnOrderDisplay = document.getElementById('column-order-display');
+    
+    // Display matrix
+    let matrixHTML = '<div class="matrix-container">';
+    matrixHTML += '<div class="matrix-header">';
+    viz.key.forEach((k, i) => {
+        matrixHTML += `<div class="matrix-cell header-cell">${k}</div>`;
+    });
+    matrixHTML += '</div>';
+    
+    viz.matrix.forEach((row, rowIdx) => {
+        matrixHTML += '<div class="matrix-row">';
+        row.forEach((cell, colIdx) => {
+            matrixHTML += `<div class="matrix-cell">${cell}</div>`;
+        });
+        matrixHTML += '</div>';
+    });
+    matrixHTML += '</div>';
+    
+    matrixDisplay.innerHTML = matrixHTML;
+    
+    // Display column order
+    columnOrderDisplay.innerHTML = `
+        <p class="visualization-note">
+            <strong>Reading order:</strong> Columns are read in the order: ${viz.column_order.map(i => i + 1).join(' → ')}
+        </p>
+    `;
+}
+</script>
+{% endblock %}
