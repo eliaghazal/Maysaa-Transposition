@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Columnar Transposition Cipher{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <h1 class="hero-title">Columnar Transposition Cipher</h1>
+    <p class="hero-subtitle">A Complete System Security Implementation</p>
+</div>
+
+<div class="features-grid">
+    <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Encryption/Decryption</h3>
+        <p>Secure your messages using columnar transposition cipher with numeric or keyword-based keys.</p>
+        <a href="/encrypt" class="btn btn-primary">Start Encrypting</a>
+    </div>
+
+    <div class="feature-card">
+        <div class="feature-icon">🔓</div>
+        <h3>Decrypt Messages</h3>
+        <p>Decrypt ciphertext using your key. Supports text with or without spaces.</p>
+        <a href="/decrypt" class="btn btn-primary">Start Decrypting</a>
+    </div>
+
+    <div class="feature-card">
+        <div class="feature-icon">⚔️</div>
+        <h3>Attack & Crack</h3>
+        <p>Brute-force and heuristic attacks to crack encrypted messages without the key.</p>
+        <a href="/attack" class="btn btn-danger">Launch Attack</a>
+    </div>
+
+    <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AI Recommender</h3>
+        <p>Get AI-powered key recommendations with confidence scores and statistical analysis.</p>
+        <a href="/recommender" class="btn btn-success">Get Recommendations</a>
+    </div>
+</div>
+
+<div class="info-section">
+    <h2>How It Works</h2>
+    <div class="info-content">
+        <div class="info-item">
+            <h3>1. Choose Your Key</h3>
+            <p>Use a numeric key (e.g., "3142") or a keyword (e.g., "SECRET" → "351624")</p>
+        </div>
+        <div class="info-item">
+            <h3>2. Arrange in Columns</h3>
+            <p>Your message is written into a grid with columns determined by your key</p>
+        </div>
+        <div class="info-item">
+            <h3>3. Read by Order</h3>
+            <p>Columns are read in the order specified by the key to create the ciphertext</p>
+        </div>
+    </div>
+</div>
+
+<div class="example-section">
+    <h2>Quick Example</h2>
+    <div class="example-box">
+        <div class="example-step">
+            <h4>Plaintext:</h4>
+            <code>HELLO WORLD</code>
+        </div>
+        <div class="example-step">
+            <h4>Key:</h4>
+            <code>312</code>
+        </div>
+        <div class="example-step">
+            <h4>Ciphertext:</h4>
+            <code>EOOHLLLWRDX</code>
+        </div>
+    </div>
+    <p class="example-note">
+        The message is arranged in 3 columns, then read in order 3→1→2
+    </p>
+</div>
+{% endblock %}
